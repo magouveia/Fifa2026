@@ -1,0 +1,7 @@
+{
+  "name": "Mundial 2026 ",
+  "description": "Acompanha o Mundial!!",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "short_name": "Mundial 26",
+  "name": "Mundial 2026 Simulator",
+  "icons": [
+    {
+      "src": "https://imgur.com/bWWzjGM.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://imgur.com/bWWzjGM.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1e3a8a",
+  "background_color": "#f8fafc",
+  "orientation": "portrait-primary"
+}

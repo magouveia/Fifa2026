@@ -1,0 +1,109 @@
+
+<!DOCTYPE html>
+<html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Mundial 2026 - Hub Profissional</title>
+    <meta name="description" content="Simulador e Hub oficial para o Mundial 2026.">
+    <meta name="theme-color" content="#cbd5e1">
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="https://imgur.com/bWWzjGM.png">
+
+    <link rel="icon" type="image/png" href="https://imgur.com/bWWzjGM.png">
+    
+    <!-- Fonte Poppins mantida conforme preferência -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Fonte JetBrains Mono para elementos técnicos/menu -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+      :root {
+        --font-main: 'Poppins', sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #cbd5e1;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #64748b;
+        border-radius: 10px;
+      }
+      
+      body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        background: #cbd5e1; /* Fundo cinza para contraste */
+        font-family: var(--font-main);
+        color: #0f172a;
+        overflow-x: hidden;
+      }
+
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .glass-header {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+      }
+
+      /* Sombra ultra profunda para os blocos brancos */
+      .card-premium {
+        background: #ffffff;
+        box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      
+      .card-premium:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 45px 70px -12px rgba(0, 0, 0, 0.45);
+      }
+
+      input, select, textarea {
+        font-family: var(--font-main);
+      }
+      
+      .font-tech {
+        font-family: var(--font-mono);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "firebase/": "https://esm.sh/firebase@^12.7.0/",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+  }
+}
+</script>
+</head>
+  <body class="min-h-screen selection:bg-indigo-600 selection:text-white antialiased">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
