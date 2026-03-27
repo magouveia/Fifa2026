@@ -29,6 +29,16 @@ if (!existingAdmin) {
   db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run(adminEmail, hash);
 }
 
+// Seed Guest
+const guestEmail = 'convidado@mundial.com';
+const guestPass = 'mundial2026';
+const existingGuest = db.prepare('SELECT * FROM users WHERE email = ?').get(guestEmail);
+
+if (!existingGuest) {
+  const hash = bcrypt.hashSync(guestPass, 10);
+  db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run(guestEmail, hash);
+}
+
 // Seed Data
 const existingState = db.prepare('SELECT * FROM app_state WHERE id = 1').get();
 if (!existingState) {

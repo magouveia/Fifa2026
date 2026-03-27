@@ -21,12 +21,20 @@ call npm run build
 echo.
 echo [4/4] A iniciar o servidor...
 echo.
-echo Aceda a aplicacao no browser em: http://localhost:3000
+echo NOTA: Se a porta 3008 ja estiver ocupada por outra app,
+echo o servidor vai tentar usar a porta 3009, 3010, etc.
+echo.
+echo Aceda a aplicacao no browser em: http://localhost:3008
 echo.
 echo Para fechar o servidor, feche esta janela ou pressione Ctrl+C.
 echo ===================================================
 
 set NODE_ENV=production
+set PORT=3008
+
+echo A abrir o browser automaticamente...
+start http://localhost:3008
+
 call npm run start
 
 pause

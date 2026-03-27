@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Trophy, CalendarDays, User, ChevronRight, Bell, Settings2, ShieldAlert, LogOut } from 'lucide-react';
+import { Home, Trophy, CalendarDays, User, ChevronRight, Bell, Settings2, ShieldAlert, LogOut, Download } from 'lucide-react';
 import GroupView from './components/GroupView';
 import PlayoffsView from './components/PlayoffsView';
 import MatchesView from './components/MatchesView';
@@ -13,23 +13,49 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('playoffs');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem('isAdmin') === 'true');
   const [token, setToken] = useState<string | null>(localStorage.getItem('adminToken'));
-  const [showLogin, setShowLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
   
   const [matches, setMatches] = useState<Match[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [playoffs, setPlayoffs] = useState<PlayoffPath[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallInstructions, setShowInstallInstructions] = useState(false);
+
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      // Show instructions if prompt is not available (e.g. iOS or already installed)
+      setShowInstallInstructions(true);
+    }
+  };
+
   useEffect(() => {
     if (token) {
-      setIsAdmin(true);
+      fetchData();
+    } else {
+      setIsLoading(false);
     }
-    fetchData();
   }, [token]);
 
   const fetchData = async () => {
@@ -93,9 +119,48 @@ export default function App() {
     });
   };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    if (loginPassword !== registerConfirmPassword) {
+      setLoginError('As passwords não coincidem');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setToken(data.token);
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('isAdmin', data.isAdmin ? 'true' : 'false');
+        setIsAdmin(data.isAdmin);
+        setLoginEmail('');
+        setLoginPassword('');
+        setRegisterConfirmPassword('');
+      } else {
+        setLoginError(data.error || 'Erro ao criar conta');
+      }
+    } catch (error) {
+      setLoginError('Erro de ligação ao servidor');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    setIsLoading(true);
     
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -109,8 +174,8 @@ export default function App() {
       if (response.ok) {
         setToken(data.token);
         localStorage.setItem('adminToken', data.token);
-        setIsAdmin(true);
-        setShowLogin(false);
+        localStorage.setItem('isAdmin', data.isAdmin ? 'true' : 'false');
+        setIsAdmin(data.isAdmin);
         setLoginEmail('');
         setLoginPassword('');
       } else {
@@ -118,12 +183,15 @@ export default function App() {
       }
     } catch (error) {
       setLoginError('Erro de ligação ao servidor');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLogout = () => {
     setToken(null);
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('isAdmin');
     setIsAdmin(false);
   };
 
@@ -136,6 +204,107 @@ export default function App() {
     { id: 'estatisticas', label: 'Estatísticas' },
   ];
 
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-[#0B1120] flex items-center justify-center p-4 selection:bg-emerald-500/30">
+        <div className="bg-[#131B2F] w-full max-w-sm rounded-3xl border border-slate-800 shadow-2xl p-8 animate-in fade-in zoom-in-95 duration-500">
+          <div className="flex flex-col items-center mb-8">
+            <img src="https://i.imgur.com/bWWzjGM.png" alt="Mundial 2026" className="w-20 h-20 object-contain drop-shadow-[0_0_12px_rgba(52,211,153,0.5)] mb-4" referrerPolicy="no-referrer" />
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Mundial <span className="text-emerald-400">2026</span>
+            </h1>
+            <p className="text-slate-400 text-sm mt-2 text-center">
+              {isRegistering ? 'Crie a sua conta para aceder' : 'Inicie sessão para aceder à aplicação'}
+            </p>
+          </div>
+          
+          <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-5">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Email</label>
+              <input 
+                type="email" 
+                value={loginEmail}
+                onChange={e => setLoginEmail(e.target.value)}
+                className="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Password</label>
+              <input 
+                type="password" 
+                value={loginPassword}
+                onChange={e => setLoginPassword(e.target.value)}
+                className="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            {isRegistering && (
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Confirmar Password</label>
+                <input 
+                  type="password" 
+                  value={registerConfirmPassword}
+                  onChange={e => setRegisterConfirmPassword(e.target.value)}
+                  className="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                  required={isRegistering}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+
+            {loginError && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <p className="text-red-400 text-xs font-bold text-center">{loginError}</p>
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3.5 mt-4 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-[#0B1120] rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-[#0B1120] border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                isRegistering ? 'Criar Conta' : 'Entrar na Aplicação'
+              )}
+            </button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(!isRegistering);
+                  setLoginError('');
+                  setLoginPassword('');
+                  setRegisterConfirmPassword('');
+                }}
+                className="text-sm text-slate-400 hover:text-emerald-400 transition-colors"
+              >
+                {isRegistering ? 'Já tem conta? Iniciar sessão' : 'Não tem conta? Registe-se aqui'}
+              </button>
+            </div>
+
+            <div className="text-center pt-4 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0B1120] text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10 transition-colors text-sm font-bold uppercase tracking-wider"
+              >
+                <Download className="w-4 h-4" />
+                Instalar Aplicação
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans selection:bg-emerald-500/30">
       
@@ -143,29 +312,31 @@ export default function App() {
       <header className="sticky top-0 z-50 bg-[#0B1120]/95 backdrop-blur-md border-b border-slate-800/80">
         <div className="px-5 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <img src="https://imgur.com/bWWzjGM.png" alt="Mundial 2026" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" referrerPolicy="no-referrer" />
+            <img src="https://i.imgur.com/bWWzjGM.png" alt="Mundial 2026" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" referrerPolicy="no-referrer" />
             <h1 className="text-xl font-bold tracking-tight text-white">
               Mundial <span className="text-emerald-400">2026</span>
             </h1>
           </div>
-          {isAdmin ? (
-            <button 
-              onClick={handleLogout}
-              className="p-2 rounded-full transition-colors relative flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleInstallApp}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors text-[10px] sm:text-xs font-bold uppercase tracking-wider"
             >
-              <ShieldAlert className="w-4 h-4" />
-              Admin
-              <LogOut className="w-3 h-3 ml-1" />
+              <Download className="w-3 h-3" />
+              <span className="hidden sm:inline">Instalar App</span>
+              <span className="sm:hidden">Instalar</span>
             </button>
-          ) : (
-            <button 
-              onClick={() => setShowLogin(true)}
-              className="p-2 rounded-full transition-colors relative flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-slate-800/50 text-slate-400 border border-transparent hover:bg-slate-800"
-            >
-              <Settings2 className="w-4 h-4" />
-              Entrar
-            </button>
-          )}
+            {isAdmin && (
+              <button 
+                onClick={handleLogout}
+                className="p-2 rounded-full transition-colors relative flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                Admin
+                <LogOut className="w-3 h-3 ml-1" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Top Scrollable Tabs */}
@@ -206,54 +377,34 @@ export default function App() {
         )}
       </main>
 
-      {/* Login Modal */}
-      {showLogin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-[#131B2F] w-full max-w-sm rounded-3xl border border-slate-800 shadow-2xl p-6">
-            <h3 className="text-xl font-bold text-white mb-6 text-center">Acesso Reservado</h3>
-            
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Email</label>
-                <input 
-                  type="email" 
-                  value={loginEmail}
-                  onChange={e => setLoginEmail(e.target.value)}
-                  className="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Password</label>
-                <input 
-                  type="password" 
-                  value={loginPassword}
-                  onChange={e => setLoginPassword(e.target.value)}
-                  className="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500"
-                  required
-                />
-              </div>
-
-              {loginError && (
-                <p className="text-red-400 text-xs font-bold text-center">{loginError}</p>
-              )}
-
-              <div className="flex gap-3 mt-8">
-                <button 
-                  type="button"
-                  onClick={() => setShowLogin(false)}
-                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-[#0B1120] rounded-xl font-bold transition-colors"
-                >
-                  Entrar
-                </button>
-              </div>
-            </form>
+      {/* Install Instructions Modal */}
+      {showInstallInstructions && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#131B2F] border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-2">Instalar Aplicação</h3>
+            <p className="text-slate-300 text-sm mb-4">
+              Para instalar a aplicação no seu dispositivo:
+            </p>
+            <ul className="text-sm text-slate-400 space-y-3 mb-6">
+              <li className="flex gap-2">
+                <span className="text-emerald-400 font-bold">1.</span>
+                <span>No Safari (iOS), toque no ícone de Partilhar (quadrado com seta para cima).</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-emerald-400 font-bold">2.</span>
+                <span>No Chrome/Android, toque nos 3 pontos no canto superior direito.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-emerald-400 font-bold">3.</span>
+                <span>Selecione <strong>"Adicionar ao Ecrã Principal"</strong> ou <strong>"Instalar Aplicação"</strong>.</span>
+              </li>
+            </ul>
+            <button
+              onClick={() => setShowInstallInstructions(false)}
+              className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-medium transition-colors"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

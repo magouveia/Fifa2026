@@ -24,12 +24,33 @@ const authenticateToken = (req: any, res: any, next: any) => {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3008;
 
   app.use(cors());
   app.use(express.json({ limit: '10mb' }));
 
   // --- AUTH ROUTES ---
+  app.post('/api/auth/register', (req, res) => {
+    const { email, password } = req.body;
+    try {
+      const existingUser = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+      if (existingUser) {
+        return res.status(400).json({ error: 'Este email já está registado' });
+      }
+
+      const hash = bcrypt.hashSync(password, 10);
+      const result = db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run(email, hash);
+      
+      const isAdmin = email === 'magouveia1982@gmail.com';
+      const token = jwt.sign({ id: result.lastInsertRowid, email, isAdmin }, JWT_SECRET, { expiresIn: '24h' });
+      
+      res.json({ success: true, token, email, isAdmin });
+    } catch (error) {
+      console.error('Erro no registo:', error);
+      res.status(500).json({ error: 'Erro ao criar conta' });
+    }
+  });
+
   app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;
     try {
@@ -39,8 +60,9 @@ async function startServer() {
       const valid = bcrypt.compareSync(password, user.password_hash);
       if (!valid) return res.status(401).json({ error: 'Credenciais inválidas' });
       
-      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
-      res.json({ success: true, token, email: user.email });
+      const isAdmin = user.email === 'magouveia1982@gmail.com';
+      const token = jwt.sign({ id: user.id, email: user.email, isAdmin }, JWT_SECRET, { expiresIn: '24h' });
+      res.json({ success: true, token, email: user.email, isAdmin });
     } catch (error) {
       res.status(500).json({ error: 'Erro no servidor' });
     }
@@ -97,9 +119,25 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor Full-Stack a correr em http://localhost:${PORT}`);
-  });
+  let currentPort = Number(PORT);
+  
+  const startListening = () => {
+    const server = app.listen(currentPort, '0.0.0.0', () => {
+      console.log(`Servidor Full-Stack a correr em http://localhost:${currentPort}`);
+    });
+
+    server.on('error', (e: any) => {
+      if (e.code === 'EADDRINUSE') {
+        console.log(`A porta ${currentPort} está ocupada, a tentar a porta ${currentPort + 1}...`);
+        currentPort++;
+        startListening();
+      } else {
+        console.error('Erro ao iniciar o servidor:', e);
+      }
+    });
+  };
+
+  startListening();
 }
 
 startServer().catch((err) => {
