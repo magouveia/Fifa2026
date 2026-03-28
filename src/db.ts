@@ -2,7 +2,18 @@ import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import { INITIAL_GROUPS, INITIAL_MATCHES, INITIAL_PLAYOFFS } from '../constants';
 
-const db = new Database('mundial.db');
+import fs from 'fs';
+import path from 'path';
+
+const dbPath = process.env.DB_PATH || 'mundial.db';
+
+// Ensure directory exists if DB_PATH contains a directory
+const dbDir = path.dirname(dbPath);
+if (dbDir !== '.' && !fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new Database(dbPath);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (

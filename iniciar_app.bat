@@ -32,9 +32,6 @@ echo ===================================================
 set NODE_ENV=production
 set PORT=3008
 
-echo A abrir o browser automaticamente...
-start http://localhost:3008
-
 call npm run start
 
 pause

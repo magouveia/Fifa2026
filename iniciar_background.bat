@@ -43,7 +43,4 @@ echo.
 echo Para parar a aplicacao no futuro, abra a linha de comandos e escreva:
 echo pm2 stop mundial2026
 echo.
-echo A abrir o browser automaticamente...
-start http://localhost:3008
-echo.
 pause

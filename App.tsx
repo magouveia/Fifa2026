@@ -9,7 +9,7 @@ import StatsView from './components/StatsView';
 import { Match, Group, PlayoffPath } from './types';
 
 // API Base URL - In production this would be the actual domain
-const API_URL = import.meta.env.VITE_API_URL || '';
+
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('playoffs');
@@ -60,7 +60,7 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/tournament/public`);
+      const response = await fetch(`/api/tournament/public`);
       if (response.ok) {
         const data = await response.json();
         setGroups(data.groups);
@@ -78,7 +78,7 @@ export default function App() {
     if (!isAdmin || !token) return;
     
     try {
-      await fetch(`${API_URL}/api/tournament/save`, {
+      await fetch(`/api/tournament/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,7 +131,7 @@ export default function App() {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
+      const response = await fetch(`/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword })
@@ -163,7 +163,7 @@ export default function App() {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword })
@@ -310,30 +310,31 @@ export default function App() {
       
       {/* App Bar / Header */}
       <header className="sticky top-0 z-50 bg-[#0B1120]/95 backdrop-blur-md border-b border-slate-800/80">
-        <div className="px-5 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img src="https://i.imgur.com/bWWzjGM.png" alt="Mundial 2026" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" referrerPolicy="no-referrer" />
-            <h1 className="text-xl font-bold tracking-tight text-white">
+        <div className="px-3 sm:px-5 py-3 sm:py-4 flex justify-between items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <img src="https://i.imgur.com/bWWzjGM.png" alt="Mundial 2026" className="w-8 h-8 sm:w-10 sm:h-10 object-contain drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] flex-shrink-0" referrerPolicy="no-referrer" />
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white truncate">
               Mundial <span className="text-emerald-400">2026</span>
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={handleInstallApp}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors text-[10px] sm:text-xs font-bold uppercase tracking-wider"
+              className="flex items-center justify-center w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors text-xs font-bold uppercase tracking-wider"
+              title="Instalar Aplicação"
             >
-              <Download className="w-3 h-3" />
-              <span className="hidden sm:inline">Instalar App</span>
-              <span className="sm:hidden">Instalar</span>
+              <Download className="w-4 h-4 sm:w-3 sm:h-3" />
+              <span className="hidden sm:inline ml-1.5">Instalar App</span>
             </button>
             {isAdmin && (
               <button 
                 onClick={handleLogout}
-                className="p-2 rounded-full transition-colors relative flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
+                className="flex items-center justify-center w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors text-xs font-bold uppercase tracking-wider"
+                title="Sair de Admin"
               >
-                <ShieldAlert className="w-4 h-4" />
-                Admin
-                <LogOut className="w-3 h-3 ml-1" />
+                <ShieldAlert className="w-4 h-4 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline ml-1.5">Admin</span>
+                <LogOut className="hidden sm:inline w-3 h-3 ml-1" />
               </button>
             )}
           </div>

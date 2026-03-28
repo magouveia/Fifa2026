@@ -124,6 +124,15 @@ async function startServer() {
   const startListening = () => {
     const server = app.listen(currentPort, '0.0.0.0', () => {
       console.log(`Servidor Full-Stack a correr em http://localhost:${currentPort}`);
+      
+      // Abrir o browser automaticamente
+      if (process.env.NODE_ENV === 'production' && process.env.DISABLE_AUTO_OPEN !== 'true') {
+        const url = `http://localhost:${currentPort}`;
+        const startCommand = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+        import('child_process').then(({ exec }) => {
+          exec(`${startCommand} ${url}`);
+        }).catch(err => console.error('Não foi possível abrir o browser automaticamente:', err));
+      }
     });
 
     server.on('error', (e: any) => {
