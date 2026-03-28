@@ -6,7 +6,7 @@ import db from './src/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = 'mundial2026-super-secret-key-magouveia'; // In production, use environment variable
+const JWT_SECRET = process.env.JWT_SECRET || 'mundial2026-super-secret-key-magouveia';
 
 // --- Authentication Middleware ---
 const authenticateToken = (req: any, res: any, next: any) => {
@@ -24,10 +24,14 @@ const authenticateToken = (req: any, res: any, next: any) => {
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3008;
+  const PORT = process.env.PORT || 3000;
 
   app.use(cors());
   app.use(express.json({ limit: '10mb' }));
+
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', port: PORT });
+  });
 
   // --- AUTH ROUTES ---
   app.post('/api/auth/register', (req, res) => {
@@ -53,17 +57,26 @@ async function startServer() {
 
   app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;
+    console.log(`Tentativa de login para: ${email}`);
     try {
       const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
-      if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
+      if (!user) {
+        console.log(`Utilizador não encontrado: ${email}`);
+        return res.status(401).json({ error: 'Credenciais inválidas' });
+      }
       
       const valid = bcrypt.compareSync(password, user.password_hash);
-      if (!valid) return res.status(401).json({ error: 'Credenciais inválidas' });
+      if (!valid) {
+        console.log(`Password incorreta para: ${email}`);
+        return res.status(401).json({ error: 'Credenciais inválidas' });
+      }
       
       const isAdmin = user.email === 'magouveia1982@gmail.com';
       const token = jwt.sign({ id: user.id, email: user.email, isAdmin }, JWT_SECRET, { expiresIn: '24h' });
+      console.log(`Login bem-sucedido: ${email} (Admin: ${isAdmin})`);
       res.json({ success: true, token, email: user.email, isAdmin });
     } catch (error) {
+      console.error('Erro no login:', error);
       res.status(500).json({ error: 'Erro no servidor' });
     }
   });
@@ -92,6 +105,11 @@ async function startServer() {
 
   // Guardar ou Atualizar dados (Admin Only)
   app.post('/api/tournament/save', authenticateToken, (req, res) => {
+    const user = (req as any).user;
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: 'Acesso negado. Apenas o administrador pode guardar dados.' });
+    }
+
     const { groups, matches, playoffs } = req.body;
 
     try {
@@ -119,34 +137,18 @@ async function startServer() {
     });
   }
 
-  let currentPort = Number(PORT);
-  
-  const startListening = () => {
-    const server = app.listen(currentPort, '0.0.0.0', () => {
-      console.log(`Servidor Full-Stack a correr em http://localhost:${currentPort}`);
-      
-      // Abrir o browser automaticamente
-      if (process.env.NODE_ENV === 'production' && process.env.DISABLE_AUTO_OPEN !== 'true') {
-        const url = `http://localhost:${currentPort}`;
-        const startCommand = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-        import('child_process').then(({ exec }) => {
-          exec(`${startCommand} ${url}`);
-        }).catch(err => console.error('Não foi possível abrir o browser automaticamente:', err));
-      }
-    });
-
-    server.on('error', (e: any) => {
-      if (e.code === 'EADDRINUSE') {
-        console.log(`A porta ${currentPort} está ocupada, a tentar a porta ${currentPort + 1}...`);
-        currentPort++;
-        startListening();
-      } else {
-        console.error('Erro ao iniciar o servidor:', e);
-      }
-    });
-  };
-
-  startListening();
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor Full-Stack a correr em http://localhost:${PORT}`);
+    
+    // Abrir o browser automaticamente
+    if (process.env.NODE_ENV === 'production' && process.env.DISABLE_AUTO_OPEN !== 'true') {
+      const url = `http://localhost:${PORT}`;
+      const startCommand = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+      import('child_process').then(({ exec }) => {
+        exec(`${startCommand} ${url}`);
+      }).catch(err => console.error('Não foi possível abrir o browser automaticamente:', err));
+    }
+  });
 }
 
 startServer().catch((err) => {

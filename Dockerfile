@@ -14,7 +14,7 @@ COPY . .
 # Build the frontend
 RUN npm run build
 
-EXPOSE 3000
+EXPOSE 5173
 
 # Start the server
 CMD ["npm", "start"]
