@@ -30,7 +30,14 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
 
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', port: PORT });
+    try {
+      const testHash = bcrypt.hashSync('test', 10);
+      const testValid = bcrypt.compareSync('test', testHash);
+      const dbTest = db.prepare('SELECT 1 as test').get() as any;
+      res.json({ status: 'ok', port: PORT, bcryptTest: testValid, dbTest: dbTest.test === 1 });
+    } catch (err) {
+      res.status(500).json({ status: 'error', error: String(err) });
+    }
   });
 
   // --- AUTH ROUTES ---
@@ -56,27 +63,33 @@ async function startServer() {
   });
 
   app.post('/api/auth/login', (req, res) => {
+    console.log('--- NOVA TENTATIVA DE LOGIN ---');
     const { email, password } = req.body;
-    console.log(`Tentativa de login para: ${email}`);
+    console.log(`Email: ${email}`);
     try {
+      console.log('A pesquisar utilizador na BD...');
       const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
       if (!user) {
         console.log(`Utilizador não encontrado: ${email}`);
         return res.status(401).json({ error: 'Credenciais inválidas' });
       }
       
+      console.log('A verificar password com bcryptjs...');
       const valid = bcrypt.compareSync(password, user.password_hash);
+      console.log(`Password válida? ${valid}`);
+      
       if (!valid) {
         console.log(`Password incorreta para: ${email}`);
         return res.status(401).json({ error: 'Credenciais inválidas' });
       }
       
+      console.log('A gerar token JWT...');
       const isAdmin = user.email === 'magouveia1982@gmail.com';
       const token = jwt.sign({ id: user.id, email: user.email, isAdmin }, JWT_SECRET, { expiresIn: '24h' });
       console.log(`Login bem-sucedido: ${email} (Admin: ${isAdmin})`);
       res.json({ success: true, token, email: user.email, isAdmin });
     } catch (error) {
-      console.error('Erro no login:', error);
+      console.error('ERRO CRÍTICO NO LOGIN:', error);
       res.status(500).json({ error: 'Erro no servidor' });
     }
   });
@@ -125,7 +138,10 @@ async function startServer() {
   // --- VITE MIDDLEWARE ---
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: false // Disable HMR to stop WebSocket errors in AI Studio
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -139,17 +155,16 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor Full-Stack a correr em http://localhost:${PORT}`);
-    
-    // Abrir o browser automaticamente
-    if (process.env.NODE_ENV === 'production' && process.env.DISABLE_AUTO_OPEN !== 'true') {
-      const url = `http://localhost:${PORT}`;
-      const startCommand = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-      import('child_process').then(({ exec }) => {
-        exec(`${startCommand} ${url}`);
-      }).catch(err => console.error('Não foi possível abrir o browser automaticamente:', err));
-    }
   });
 }
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err);
+});
 
 startServer().catch((err) => {
   console.error('Falha ao iniciar o servidor:', err);

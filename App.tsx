@@ -51,6 +51,19 @@ export default function App() {
   };
 
   useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        console.log('Backend Health Check:', data);
+      } catch (err) {
+        console.error('Backend Health Check FAILED:', err);
+      }
+    };
+    checkBackend();
+  }, []);
+
+  useEffect(() => {
     if (token) {
       fetchData();
     } else {
@@ -69,6 +82,7 @@ export default function App() {
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
